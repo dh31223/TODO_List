@@ -33,7 +33,7 @@ python -m venv .venv
 ### 激活虚拟空间
 
 ```bash
-.venv\Scripts\activate"
+.venv\Scripts\activate
 ```
 
 
