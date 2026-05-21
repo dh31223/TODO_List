@@ -36,12 +36,21 @@ python -m venv .venv
 .venv\Scripts\activate
 ```
 
+前面有绿色字体代表成功
 
 ### 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
+
+如果显示
+
+[notice] A new release of pip is available: 25.2 -> 26.1.1
+
+[notice] To update, run: python.exe -m pip install --upgrade pip
+
+这类字样，表示你的pip需要更新，运行系统提示的代码就行了。
 
 ### 打包命令
 
