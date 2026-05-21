@@ -23,6 +23,12 @@
 git clone https://github.com/dh31223/TODO_List.git
 ```
 
+### 换软件下载源
+
+如果换过了就不需要重复
+```bash
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
 ### 创建虚拟环境
 
@@ -74,6 +80,8 @@ pyinstaller --onefile --windowed --name "TODO_List" --add-data "icon/app_icon.pn
 ### 3. 输出位置
 
 生成的 .exe 位于 `dist/TODO_List.exe`，可直接双击运行。
+
+也可以在桌面手动创建快捷方式。
 
 > **注意**：首次运行时 `data/todos.json` 会在 .exe 同级目录自动创建。
 
