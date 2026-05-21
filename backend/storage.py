@@ -1,8 +1,15 @@
 import json
-import os
 from pathlib import Path
+import sys
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys.executable).resolve().parent  # exe 所在目录
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent  # 项目根目录（保持不变）
+
+DATA_DIR = BASE_DIR / "data"
+
+
 DATA_FILE = DATA_DIR / "todos.json"
 
 
