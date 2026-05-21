@@ -50,7 +50,7 @@ pip install -r requirements.txt
 
 [notice] To update, run: python.exe -m pip install --upgrade pip
 
-这类字样，表示你的pip需要更新，运行系统提示的代码就行了。
+这类字样，表示你的pip需要更新，运行系统提示的代码然后重新安装依赖。
 
 ### 打包命令
 
