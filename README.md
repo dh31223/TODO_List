@@ -10,6 +10,58 @@
 - **已完成/未完成管理**：折叠式区域，支持彻底删除
 - **深色主题 UI**：自定义 QPainter 矢量图标按钮，圆角卡片设计
 
+## 安装与运行
+
+### 环境要求
+
+- Python 3.10+
+- Windows / macOS / Linux
+
+### 克隆仓库
+
+```bash
+git clone https://github.com/dh31223/TODO_List.git
+```
+
+
+### 创建虚拟环境
+
+```bash
+python -m venv .venv
+```
+
+### 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+### 打包命令
+
+```bash
+pyinstaller --onefile --windowed --name "TODO_List" --add-data "icon/app_icon.png;icon" main.py
+```
+---
+
+## 打包为 .exe
+
+使用 PyInstaller 将程序打包为单个可执行文件：
+
+
+| 参数 | 说明 |
+|---|---|
+| `--onefile` | 打包为单个 .exe 文件 |
+| `--windowed` | 不显示命令行窗口（GUI 程序） |
+| `--name` | 输出文件名 |
+| `--add-data` | 附带资源文件（Windows 用 `;` 分隔，macOS/Linux 用 `:`） |
+
+### 3. 输出位置
+
+生成的 .exe 位于 `dist/TODO_List.exe`，可直接双击运行。
+
+> **注意**：首次运行时 `data/todos.json` 会在 .exe 同级目录自动创建。
+
+
 ## 项目结构
 
 ```
@@ -132,53 +184,3 @@ TODO_List/
 
 ---
 
-## 安装与运行
-
-### 环境要求
-
-- Python 3.10+
-- Windows / macOS / Linux
-
-### 克隆仓库
-
-```bash
-git clone https://github.com/dh31223/TODO_List.git
-```
-
-
-### 创建虚拟环境
-
-```bash
-python -m venv .venv
-```
-
-### 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-### 打包命令
-
-```bash
-pyinstaller --onefile --windowed --name "TODO_List" --add-data "icon/app_icon.png;icon" main.py
-```
----
-
-## 打包为 .exe
-
-使用 PyInstaller 将程序打包为单个可执行文件：
-
-
-| 参数 | 说明 |
-|---|---|
-| `--onefile` | 打包为单个 .exe 文件 |
-| `--windowed` | 不显示命令行窗口（GUI 程序） |
-| `--name` | 输出文件名 |
-| `--add-data` | 附带资源文件（Windows 用 `;` 分隔，macOS/Linux 用 `:`） |
-
-### 3. 输出位置
-
-生成的 .exe 位于 `dist/TODO_List.exe`，可直接双击运行。
-
-> **注意**：首次运行时 `data/todos.json` 会在 .exe 同级目录自动创建。
