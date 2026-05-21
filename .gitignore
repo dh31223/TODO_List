@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+data/todos.json
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+Desktop.ini
+devlog.md
