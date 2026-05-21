@@ -30,6 +30,13 @@ git clone https://github.com/dh31223/TODO_List.git
 python -m venv .venv
 ```
 
+### 激活虚拟空间
+
+```bash
+.venv\Scripts\activate"
+```
+
+
 ### 安装依赖
 
 ```bash
