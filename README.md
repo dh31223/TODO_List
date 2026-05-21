@@ -139,6 +139,12 @@ TODO_List/
 - Python 3.10+
 - Windows / macOS / Linux
 
+### 克隆仓库
+
+```bash
+git clone https://github.com/dh31223/TODO_List.git
+```
+
 
 ### 创建虚拟环境
 
@@ -155,7 +161,7 @@ pip install -r requirements.txt
 ### 打包命令
 
 ```bash
-pyinstaller --onefile --windowed --name "TODO_List" --add-data "图标文件/app_icon.png;图标文件" main.py
+pyinstaller --onefile --windowed --name "TODO_List" --add-data "icon/app_icon.png;icon" main.py
 ```
 ---
 
