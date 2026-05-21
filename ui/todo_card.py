@@ -1,8 +1,8 @@
 """Todo card widget with priority dot, content, timestamp, and action buttons."""
 
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPainter, QPainterPath, QPen, QColor
 
 from backend.models import TodoItem
 from ui.styles import (
@@ -13,14 +13,87 @@ from ui.styles import (
 )
 
 
-class TodoCard(QWidget):
-    completed = pyqtSignal(str)    # emits todo_id
-    uncompleted = pyqtSignal(str)  # emits todo_id
-    edit_requested = pyqtSignal(TodoItem)  # emits the item to edit
+class IconButton(QPushButton):
+    """Circular button with a QPainter-drawn vector icon."""
 
-    def __init__(self, item: TodoItem, parent=None):
+    def __init__(self, icon_type: str, color: str, parent=None):
+        super().__init__(parent)
+        self._icon_type = icon_type
+        self._color = color
+        self._hovered = False
+        self.setFixedSize(BTN_SIZE, BTN_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def enterEvent(self, event):
+        self._hovered = True
+        self.update()
+
+    def leaveEvent(self, event):
+        self._hovered = False
+        self.update()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        r = 1  # margin so the circle doesn't clip
+        d = BTN_SIZE - r * 2
+
+        if self._hovered:
+            p.setBrush(QColor(self._color))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(r, r, d, d)
+            icon_color = QColor("white")
+        else:
+            p.setBrush(QColor(255, 255, 255, 28))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(r, r, d, d)
+            icon_color = QColor(255, 255, 255, 210)
+
+        pen = QPen(icon_color, 2.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pen)
+
+        if self._icon_type in ("check",):
+            self._draw_check(p)
+        elif self._icon_type in ("cross", "delete"):
+            self._draw_cross(p)
+        elif self._icon_type == "dots":
+            self._draw_dots(p)
+
+        p.end()
+
+    def _draw_check(self, p: QPainter):
+        cx, cy = BTN_SIZE / 2, BTN_SIZE / 2
+        path = QPainterPath()
+        path.moveTo(cx - 5.5, cy + 0.5)
+        path.lineTo(cx - 1.5, cy + 5)
+        path.lineTo(cx + 6, cy - 4.5)
+        p.drawPath(path)
+
+    def _draw_cross(self, p: QPainter):
+        pad = 7.5
+        p.drawLine(int(pad), int(pad), int(BTN_SIZE - pad), int(BTN_SIZE - pad))
+        p.drawLine(int(BTN_SIZE - pad), int(pad), int(pad), int(BTN_SIZE - pad))
+
+    def _draw_dots(self, p: QPainter):
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(p.pen().color())  # use icon color for fill
+        r = 1.8
+        cx = BTN_SIZE / 2
+        for offset in (-5, 0, 5):
+            p.drawEllipse(int(cx + offset - r), int(BTN_SIZE / 2 - r), int(r * 2), int(r * 2))
+
+
+class TodoCard(QWidget):
+    completed = pyqtSignal(str)
+    uncompleted = pyqtSignal(str)
+    edit_requested = pyqtSignal(TodoItem)
+    delete_requested = pyqtSignal(str)
+
+    def __init__(self, item: TodoItem, card_mode: str = "active", parent=None):
         super().__init__(parent)
         self._item = item
+        self._card_mode = card_mode
         self._build_ui()
 
     def _build_ui(self):
@@ -75,38 +148,24 @@ class TodoCard(QWidget):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(6)
 
-        self._btn_done = self._make_circle_btn("✓", BTN_GREEN, self._on_completed)
-        self._btn_fail = self._make_circle_btn("✗", BTN_RED, self._on_uncompleted)
-        self._btn_edit = self._make_circle_btn("⋯", BTN_GRAY, self._on_edit)
-
-        btn_layout.addWidget(self._btn_done)
-        btn_layout.addWidget(self._btn_fail)
-        btn_layout.addWidget(self._btn_edit)
+        if self._card_mode == "active":
+            self._btn_done = IconButton("check", BTN_GREEN)
+            self._btn_done.clicked.connect(self._on_completed)
+            self._btn_fail = IconButton("cross", BTN_RED)
+            self._btn_fail.clicked.connect(self._on_uncompleted)
+            self._btn_edit = IconButton("dots", BTN_GRAY)
+            self._btn_edit.clicked.connect(self._on_edit)
+            btn_layout.addWidget(self._btn_done)
+            btn_layout.addWidget(self._btn_fail)
+            btn_layout.addWidget(self._btn_edit)
+        else:
+            self._btn_delete = IconButton("delete", BTN_RED)
+            self._btn_delete.clicked.connect(self._on_delete)
+            btn_layout.addWidget(self._btn_delete)
 
         root.addWidget(dot)
         root.addLayout(text_layout, 1)
         root.addLayout(btn_layout)
-
-    def _make_circle_btn(self, text: str, color: str, slot) -> QPushButton:
-        btn = QPushButton(text)
-        btn.setFixedSize(BTN_SIZE, BTN_SIZE)
-        btn.setFont(QFont("Segoe UI", 11))
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {color};
-                color: white;
-                border: none;
-                border-radius: {BTN_SIZE // 2}px;
-                font-weight: bold;
-                padding: 0;
-            }}
-            QPushButton:hover {{
-                opacity: 0.8;
-                background: {color};
-            }}
-        """)
-        btn.clicked.connect(slot)
-        return btn
 
     def _on_completed(self):
         self.completed.emit(self._item.id)
@@ -116,6 +175,9 @@ class TodoCard(QWidget):
 
     def _on_edit(self):
         self.edit_requested.emit(self._item)
+
+    def _on_delete(self):
+        self.delete_requested.emit(self._item.id)
 
     @property
     def todo_id(self) -> str:

@@ -3,6 +3,7 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QScrollArea, QPushButton, QLabel, QButtonGroup,
+    QProgressBar,
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QIcon
@@ -44,6 +45,10 @@ class MainWindow(QMainWindow):
 
         # ── Period tabs ──────────────────────────────────
         root.addLayout(self._build_tab_bar())
+
+        # ── Progress bar ─────────────────────────────────
+        self._progress_container = self._build_progress_bar()
+        root.addWidget(self._progress_container)
 
         # ── Card list ─────────────────────────────────────
         self._scroll = QScrollArea()
@@ -158,10 +163,89 @@ class MainWindow(QMainWindow):
                 }}
             """)
 
+    def _build_progress_bar(self) -> QWidget:
+        container = QWidget()
+        container.setStyleSheet(f"background: {BG_DARK};")
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(20, 8, 20, 8)
+        layout.setSpacing(12)
+
+        self._progress_label = QLabel()
+        self._progress_label.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 13px; background: transparent;")
+
+        self._progress_bar = QProgressBar()
+        self._progress_bar.setFixedHeight(8)
+        self._progress_bar.setTextVisible(False)
+        self._progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                background: #333;
+                border: none;
+                border-radius: 4px;
+            }}
+        """)
+
+        layout.addWidget(self._progress_label)
+        layout.addWidget(self._progress_bar, 1)
+        return container
+
+    def _refresh_progress(self):
+        period_completed = self._manager.get_todos(period=self._current_period, status="completed")
+        period_active = self._manager.get_todos(period=self._current_period, status="active")
+        period_uncompleted = self._manager.get_todos(period=self._current_period, status="uncompleted")
+
+        total = len(period_active) + len(period_completed) + len(period_uncompleted)
+        done = len(period_completed)
+
+        if total == 0:
+            pct = 0
+            self._progress_bar.setValue(0)
+            self._progress_bar.setStyleSheet(f"""
+                QProgressBar {{
+                    background: #333;
+                    border: none;
+                    border-radius: 4px;
+                }}
+                QProgressBar::chunk {{
+                    background: #444;
+                    border-radius: 4px;
+                }}
+            """)
+        else:
+            pct = int(done / total * 100)
+            self._progress_bar.setValue(pct)
+            self._update_progress_color(pct)
+
+        period_names = {"daily": "今日", "weekly": "本周", "monthly": "本月"}
+        name = period_names.get(self._current_period, "")
+        self._progress_label.setText(f"{name}完成度: {done}/{total}")
+
+    def _update_progress_color(self, pct: int):
+        if pct < 25:
+            color = "#E74C3C"
+        elif pct < 50:
+            color = "#F39C12"
+        elif pct < 100:
+            color = "#3498DB"
+        else:
+            color = "#27AE60"
+
+        self._progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                background: #333;
+                border: none;
+                border-radius: 4px;
+            }}
+            QProgressBar::chunk {{
+                background: {color};
+                border-radius: 4px;
+            }}
+        """)
+
     def _on_period_change(self, period: str):
         self._current_period = period
         for key, btn in self._tab_buttons.items():
             self._apply_tab_style(btn, key == period)
+        self._refresh_progress()
         self._refresh_list()
 
     def _on_add(self):
@@ -188,21 +272,92 @@ class MainWindow(QMainWindow):
         self._manager.mark_uncompleted(todo_id)
         self._refresh_list()
 
+    def _on_delete(self, todo_id: str):
+        self._manager.delete_todo(todo_id)
+        self._refresh_list()
+
+    def _build_section_header(self, title: str, count: int) -> QPushButton:
+        btn = QPushButton(f"▼ {title} ({count})")
+        btn.setFlat(True)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                color: {TEXT_SECONDARY};
+                font-size: 12px;
+                font-weight: bold;
+                text-align: left;
+                padding: 6px 0;
+                background: transparent;
+                border: none;
+            }}
+            QPushButton:hover {{
+                color: {TEXT_PRIMARY};
+            }}
+        """)
+        return btn
+
+    def _toggle_section(self, header: QPushButton, container: QWidget):
+        visible = container.isVisible()
+        container.setVisible(not visible)
+        title = header.text()
+        if visible:
+            header.setText(title.replace("▼", "▶"))
+        else:
+            header.setText(title.replace("▶", "▼"))
+
     def _refresh_list(self):
-        # Remove existing cards (keep stretch)
+        # Remove existing widgets (keep stretch)
         while self._card_layout.count() > 1:
             item = self._card_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
-        # Add cards for current period
+        # ── Active cards ──────────────────────────────────
         active = self._manager.get_todos(period=self._current_period, status="active")
         for todo in active:
-            card = TodoCard(todo)
+            card = TodoCard(todo, card_mode="active")
             card.completed.connect(self._on_completed)
             card.uncompleted.connect(self._on_uncompleted)
             card.edit_requested.connect(self._on_edit)
             self._card_layout.insertWidget(self._card_layout.count() - 1, card)
+
+        # ── Completed section ─────────────────────────────
+        completed = self._manager.get_todos(period=self._current_period, status="completed")
+        if completed:
+            header = self._build_section_header("已完成", len(completed))
+            self._card_layout.insertWidget(self._card_layout.count() - 1, header)
+
+            container = QWidget()
+            container_layout = QVBoxLayout(container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(10)
+
+            for todo in completed:
+                card = TodoCard(todo, card_mode="completed")
+                card.delete_requested.connect(self._on_delete)
+                container_layout.addWidget(card)
+
+            self._card_layout.insertWidget(self._card_layout.count() - 1, container)
+            header.clicked.connect(lambda checked, h=header, c=container: self._toggle_section(h, c))
+
+        # ── Uncompleted section ───────────────────────────
+        uncompleted = self._manager.get_todos(period=self._current_period, status="uncompleted")
+        if uncompleted:
+            header = self._build_section_header("未完成", len(uncompleted))
+            self._card_layout.insertWidget(self._card_layout.count() - 1, header)
+
+            container = QWidget()
+            container_layout = QVBoxLayout(container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(10)
+
+            for todo in uncompleted:
+                card = TodoCard(todo, card_mode="uncompleted")
+                card.delete_requested.connect(self._on_delete)
+                container_layout.addWidget(card)
+
+            self._card_layout.insertWidget(self._card_layout.count() - 1, container)
+            header.clicked.connect(lambda checked, h=header, c=container: self._toggle_section(h, c))
 
         # Update status bar
         all_active = self._manager.get_todos(status="active")
@@ -211,3 +366,6 @@ class MainWindow(QMainWindow):
         self._status_label.setText(
             f"活跃: {len(all_active)}  |  已完成: {len(all_completed)}  |  未完成: {len(all_uncompleted)}"
         )
+
+        # Update progress bar
+        self._refresh_progress()
