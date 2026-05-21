@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
 
         # App icon
         from pathlib import Path
-        icon_path = Path(__file__).resolve().parent.parent / "图标文件" / "app_icon.png"
+        icon_path = Path(__file__).resolve().parent.parent / "icon" / "app_icon.png"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
